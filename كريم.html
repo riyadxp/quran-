@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>السلام عليكم اخي/اختي قم بالاستماء و ارتح موقع القرآن الصوتي</title>
+  <img src="https://files.catbox.moe/opcp2i.jpg" alt="صورة القرآن الكريم" id="mainImage">
+
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+      text-align: center;
+    }
+    #player {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      display: inline-block;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #007bff;
+      color: #fff;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: default;
+    }
+    #label {
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="player">
+    <div id="label">جاري التحميل...</div>
+    <button id="prev" disabled>السورة/الآية السابقة</button>
+    <button id="play">تشغيل</button>
+    <button id="next" disabled>السورة/الآية التالية</button>
+    <audio id="audio"></audio>
+  </div>
+
+  <script>
+    const apiUrl = 'https://api.alquran.cloud/v1/quran/ar.alafasy';
+    const audioEl = document.getElementById('audio');
+    const playBtn = document.getElementById('play');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const label = document.getElementById('label');
+
+    let playlist = [];
+    let current = 0;
+
+    // جلب قائمة كل الآيات
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(data => {
+        data.data.surahs.forEach(surah => {
+          surah.ayahs.forEach(ayah => {
+            playlist.push({
+              surah: surah.number,
+              ayah: ayah.numberInSurah,
+              audio: ayah.audio
+            });
+          });
+        });
+        setupPlayer();
+      })
+      .catch(err => {
+        label.textContent = 'فشل في تحميل الآيات، تحقق من الاتصال.';
+        console.error(err);
+      });
+
+    function setupPlayer() {
+      // ضبط أول آية
+      loadAyah(0);
+      // تفعيل الأزرار حسب الحاجة
+      prevBtn.disabled = true;
+      nextBtn.disabled = playlist.length <= 1;
+    }
+
+    function loadAyah(index) {
+      const item = playlist[index];
+      audioEl.src = item.audio;
+      label.textContent = `سورة ${item.surah} - آية ${item.ayah}`;
+      current = index;
+      prevBtn.disabled = (current === 0);
+      nextBtn.disabled = (current === playlist.length - 1);
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (audioEl.paused) {
+        audioEl.play();
+        playBtn.textContent = 'إيقاف';
+      } else {
+        audioEl.pause();
+        playBtn.textContent = 'تشغيل';
+      }
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (current > 0) {
+        loadAyah(current - 1);
+        audioEl.play();
+        playBtn.textContent = 'إيقاف';
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (current < playlist.length - 1) {
+        loadAyah(current + 1);
+        audioEl.play();
+        playBtn.textContent = 'إيقاف';
+      }
+    });
+
+    // عند نهاية كل آية ينتقل للتالية تلقائياً
+    audioEl.addEventListener('ended', () => {
+      if (current < playlist.length - 1) {
+        loadAyah(current + 1);
+        audioEl.play();
+      } else {
+        playBtn.textContent = 'تشغيل';
+      }
+    });
+  </script>
+
+</body>
+</html>
